@@ -33,7 +33,7 @@ static ssize_t file_store(PKOBJECT kobj, PKOBJ_ATTRIBUTE attr, const char *buf, 
 
 /* Kobject attribute */
 static KOBJ_ATTRIBUTE  sos_attr =
-  __ATTR(sos, FILE_ATTRIBUTES,
+  __ATTR(period, FILE_ATTRIBUTES,
 	file_show, file_store);
 
 /* Attrs structures array */
@@ -51,7 +51,7 @@ void sos_timer_callback(unsigned long data)
 {
 	int c = atomic_read(&tact);
 	if (c != -1) {
-		printk(KERN_INFO " --- SOS --- | Next will be in %d msec\n", c);
+		printk(KERN_INFO MODULE_PREFIX " ...---... | SOS\n");
 		mod_timer(&sos_timer, jiffies + msecs_to_jiffies(c));
 	}
 }
@@ -59,7 +59,7 @@ void sos_timer_callback(unsigned long data)
 /* Shows the current timer frequency in milliseconds. */
 static ssize_t file_show(PKOBJECT kobj, PKOBJ_ATTRIBUTE attr, char *buf)
 {
-	return sprintf(buf, "Timer frequency is %d msecs now.\n", atomic_read(&tact));
+	return sprintf(buf, "%d\n", atomic_read(&tact));
 }
 
 /* Sets the current timer frequency in milliseconds. */
@@ -68,13 +68,14 @@ static ssize_t file_store(PKOBJECT kobj, PKOBJ_ATTRIBUTE attr, const char *buf, 
 	int res, cache = 0;
 	res = sscanf(buf, "%du", &cache);
 	if (res <= 0) {
-		printk(KERN_ERR "Value is not appliable: %s!\n", buf);
+		printk(KERN_ERR MODULE_PREFIX "Value is not appliable: %s!\n", buf);
 		return count;
 	}
 	if (cache > MIN_TIMER) {
 		atomic_set(&tact, cache);
+		printk(KERN_INFO MODULE_PREFIX "Timer period set to %d ms\n", cache);
 	} else {
-		printk(KERN_ERR "%d value is invalid.\n", cache);
+		printk(KERN_ERR MODULE_PREFIX "%d value is invalid.\n", cache);
 	}
 	return count;
 }
@@ -83,15 +84,16 @@ static ssize_t file_store(PKOBJECT kobj, PKOBJ_ATTRIBUTE attr, const char *buf, 
 static int __init timer_init(void)
 {
 	int ret, start = atomic_read(&tact);
-	printk(KERN_INFO "Timer module is installing.\n");
+	printk(KERN_INFO MODULE_PREFIX "Timer module installed.\n");
+	printk(KERN_INFO MODULE_PREFIX "Timer period can be set and seen in \"/sys/kernel/sostimer/period\"");
 	setup_timer(&sos_timer, sos_timer_callback, 0);
-	printk(KERN_INFO "Starting timer to fire in default %dms (jiffies %ld)\n", start, jiffies);
+	printk(KERN_INFO MODULE_PREFIX "Starting timer with %d ms period\n", start);
 	ret = mod_timer(&sos_timer, jiffies + msecs_to_jiffies(start));
 	if (ret) {
-		printk(KERN_INFO "Error when setting up timer.\n");
+		printk(KERN_INFO MODULE_PREFIX "Error when setting up timer.\n");
 	}
 
-	kobj = kobject_create_and_add("timerk", kernel_kobj);
+	kobj = kobject_create_and_add("sostimer", kernel_kobj);
 	if (!kobj) {
 		return -ENOMEM;
 	}
@@ -108,11 +110,8 @@ static void __exit timer_exit(void)
 	int ret;
 	atomic_set(&tact, -1);
 	ret = del_timer(&sos_timer);
-	if (ret) {
-		printk(KERN_ERR "Failed to turn off timer.\n");
-	}
 	kobject_put(kobj);
-	printk(KERN_INFO "Timer module uninstalled.\n");
+	printk(KERN_INFO MODULE_PREFIX "Timer module uninstalled.\n");
 }
 
 module_init(timer_init); /* Register module entry point */
