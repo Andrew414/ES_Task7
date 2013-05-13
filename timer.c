@@ -4,6 +4,7 @@
 #include <linux/sysfs.h>
 #include <linux/timer.h>
 #include <linux/init.h>
+#include "timer.h"
 
 #define DEFAULT_TICK 1000
 #define MIN_TIMER 500
@@ -70,7 +71,7 @@ static ssize_t file_store(PKOBJECT kobj, PKOBJ_ATTRIBUTE attr, const char *buf, 
 		printk(KERN_ERR "Value is not appliable: %s!\n", buf);
 		return count;
 	}
-	if (cache > 500) {
+	if (cache > MIN_TIMER) {
 		atomic_set(&tact, cache);
 	} else {
 		printk(KERN_ERR "%d value is invalid.\n", cache);
@@ -113,9 +114,6 @@ static void __exit timer_exit(void)
 	kobject_put(kobj);
 	printk(KERN_INFO "Timer module uninstalled.\n");
 }
-
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("AnastasiyaKoloskova && AndrewFedchuk");
 
 module_init(timer_init); /* Register module entry point */
 module_exit(timer_exit); /* Register module cleaning up */
