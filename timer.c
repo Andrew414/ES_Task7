@@ -5,33 +5,43 @@
 #include <linux/timer.h>
 #include <linux/init.h>
 
+#define DEFAULT_TICK 1000
+#define MIN_TIMER 500
+#define FILE_ATTRIBUTES 0666
+
+typedef struct timer_list TIMER_LIST;
+typedef struct kobject KOBJECT, *PKOBJECT;
+typedef struct kobj_attribute KOBJ_ATTRIBUTE, *PKOBJ_ATTRIBUTE;
+typedef struct attribute  ATTRIBUTE, *PATTRIBUTE;
+typedef struct attribute_group ATTRIBUTE_GROUP;
+
 /* Default timer tact period */
-atomic_t tact = ATOMIC_INIT(5000);
+atomic_t tact = ATOMIC_INIT(DEFAULT_TICK);
 
 /* Timer structure */
-static struct timer_list sos_timer;
+static TIMER_LIST sos_timer;
 
 /* Kobject structure */
-static struct kobject * kobj;
+static PKOBJECT kobj;
 
 /* Shows the current timer frequency in milliseconds. */
-static ssize_t file_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf);
+static ssize_t file_show(PKOBJECT kobj, PKOBJ_ATTRIBUTE attr, char *buf);
 
 /* Sets the current timer frequency in milliseconds. */
-static ssize_t file_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count);
+static ssize_t file_store(PKOBJECT kobj, PKOBJ_ATTRIBUTE attr, const char *buf, size_t count);
 
 /* Kobject attribute */
-static struct kobj_attribute sos_attr =
-  __ATTR(sos, 0666,
-  file_show, file_store);
+static KOBJ_ATTRIBUTE  sos_attr =
+  __ATTR(sos, FILE_ATTRIBUTES,
+	file_show, file_store);
 
 /* Attrs structures array */
-static struct attribute *attrs[] = {
+static PATTRIBUTE attrs[] = {
 	&sos_attr.attr, NULL
 };
 
 /* Attributes group. */
-static struct attribute_group attr_group = {
+static ATTRIBUTE_GROUP attr_group = {
 	.attrs = attrs,
 };
 
@@ -46,13 +56,13 @@ void sos_timer_callback(unsigned long data)
 }
 
 /* Shows the current timer frequency in milliseconds. */
-static ssize_t file_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+static ssize_t file_show(PKOBJECT kobj, PKOBJ_ATTRIBUTE attr, char *buf)
 {
 	return sprintf(buf, "Timer frequency is %d msecs now.\n", atomic_read(&tact));
 }
 
 /* Sets the current timer frequency in milliseconds. */
-static ssize_t file_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count)
+static ssize_t file_store(PKOBJECT kobj, PKOBJ_ATTRIBUTE attr, const char *buf, size_t count)
 {
 	int res, cache = 0;
 	res = sscanf(buf, "%du", &cache);
